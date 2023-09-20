@@ -1,0 +1,5 @@
+pip install ultralytics
+pip install scikit-learn
+pip install tensorflow
+pip install scikit-image
+pip install filterpy
