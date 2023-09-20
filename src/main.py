@@ -7,15 +7,13 @@ from people import People
 
 video = os.path.join('.', 'videos', 'people.mp4')
 Video_outpath = os.path.join('.', 'rastreado.mp4')
-cords = []
+
 video_cap = cv2.VideoCapture(video)
 ret, frame = video_cap.read()
 '''cv2.VideoWriter_fourcc(*'MP4V')'''
 video_capture_output = cv2.VideoWriter(Video_outpath, 0x7634706d, video_cap.get(cv2.CAP_PROP_FPS),
                                        (640, 380))
-
 model = YOLO("yolov8n.pt")
-color = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for j in range(10)]
 
 persons = []
 frameCount = 0
@@ -58,7 +56,6 @@ while ret:
                         cv2.imwrite('src/BoundingBoxPrints/'+filename, boundingBoxPeople)'''
 
                 detections.append([x1, y1, x2, y2, score])
-                random_color = color[random.randint(0, len(color) - 1)]
                 cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (255, 255, 255), 3)
 
     '''    cv2.imshow('teste', frame)
