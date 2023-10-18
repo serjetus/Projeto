@@ -1,0 +1,10 @@
+*Perdeu Rastreamento
+                -Aonde?
+                    - quando a ultima detecção do centro do bounding box for proxima das bordas do video
+                        -extrair caracteristicas
+                            -salvar a classe em outro lugar para comparar
+                    - no meio do video
+                        -Oclusão (feito a compensação do ultimo frame detectado em relação ao atual para compensar a distancia)
+                        -60 frames se passaram sem detectar
+                            -deletar esse id?
+

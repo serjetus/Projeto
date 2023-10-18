@@ -1,3 +1,5 @@
+import math
+
 import cv2
 
 
@@ -5,6 +7,8 @@ class People:
     caracterics = []
     detections = 0
     detections_time = []
+    tracking = False
+
     def __init__(self, image, x1, x2, y1, y2, frame):
         self.x1 = x1
         self.x2 = x2
@@ -19,28 +23,11 @@ class People:
     def getdist_ymove(self):
         return self.y2 - self.y1
 
-    def show_cordinates(self):
-        print("X1:", self.x1, "X2:", self.x2, "Y1:", self.y1, "Y2:", self.y2)
+    def reverse_track(self):
+        self.tracking = not self.tracking
 
-    def compare_coordinates(self, x1, x2, y1, y2):
-        return self.x1 == x1 and self.x2 == x2 and self.y1 == y1 and self.y2 == y2
-
-    def as_moved(self, x1, x2, y1, y2, frame):
-        if self.lastFrame - frame > 10:
-            distx = self.getdist_xmove()
-            increment = distx * (self.lastFrame - frame) / 20
-            distx += increment
-            disty = self.getdist_ymove()
-            increment = disty * (self.lastFrame - frame) / 20
-            disty += increment
-
-            if (x1 <= self.x2 + distx <= x2 or x2 >= self.x1 - distx >= x1) and (
-                    y1 <= self.y2 + disty <= y2 or y2 >= self.y1 - disty >= y1):
-                return True
-            else:
-                return False
-
-
+    def get_tracking(self):
+        return self.tracking
 
     def viewimage(self):
         cv2.imshow('pessoa', self.image)
@@ -87,3 +74,14 @@ class People:
 
     def get_y2(self):
         return self.y2
+
+    def get_cx(self):
+        return int((self.x1 + self.x2)/2)
+
+    def get_cy(self):
+        return int((self.y1 + self.y2)/2)
+
+    def getdistance(self, cx, cy, frame):
+        distance = math.hypot(cx - (int(self.x1+self.x2)/2), cy - (int(self.y1 + self.y2) / 2))
+        frames = int((frame - self.lastFrame)/10)
+        return distance/frames if frames > 0 else distance
