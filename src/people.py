@@ -9,13 +9,14 @@ class People:
     detections_time = []
     tracking = False
 
-    def __init__(self, image, x1, x2, y1, y2, frame):
+    def __init__(self, image, x1, x2, y1, y2, frame, centerpx):
         self.x1 = x1
         self.x2 = x2
         self.y1 = y1
         self.y2 = y2
         self.lastFrame = frame
         self.image = image
+        self.centerpx = centerpx
 
     def getdist_xmove(self):
         return self.x2 - self.x1
@@ -81,7 +82,18 @@ class People:
     def get_cy(self):
         return int((self.y1 + self.y2)/2)
 
-    def getdistance(self, cx, cy, frame):
+    def getdistance(self, cx, cy, frame, fps):
         distance = math.hypot(cx - (int(self.x1+self.x2)/2), cy - (int(self.y1 + self.y2) / 2))
-        frames = int((frame - self.lastFrame)/10)
-        return distance/frames if frames > 0 else distance
+        sec = int((frame - self.lastFrame))
+        return distance/sec if sec > 0 else distance
+
+    def compare_centerpx(self, pixel):
+        histograma1 = cv2.calcHist([self.centerpx], [0], None, [256], [0, 256])
+        histograma2 = cv2.calcHist([pixel], [0], None, [256], [0, 256])
+
+        return cv2.compareHist(histograma1, histograma2, cv2.HISTCMP_CORREL)
+
+
+    def viewCenter(self):
+        cv2.imshow('centro', self.centerpx)
+        cv2.waitKey(0)
