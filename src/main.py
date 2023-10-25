@@ -1,3 +1,4 @@
+import math
 import os
 import random
 
@@ -18,13 +19,45 @@ model = YOLO("yolov8n.pt")
 
 persons = []
 frameCount = 0
+frameParking = 0
 detection_threshold = 0.7
+flag = False
+
+
+def tracking():
+    flag_2 = False
+    for i in range(len(persons)):
+        if not flag_2 and persons[i].getdistance(bcenterX, bcenterY, frameCount, fps) < pixels:
+            persons[i].set_codinates(x1, x2, y1, y2)
+            persons[i].set_lastframe(frameCount)
+            persons[i].reverse_track()
+            flag_2 = True
+    if not flag_2 and len(persons) < pessoas:
+        boundingboxpeople = frame[y1:y2, x1:x2]
+        person1 = People(boundingboxpeople, x1, x2, y1, y2, frameCount)
+        persons.append(person1)
+        
+    for cod in range(len(persons)):
+        if persons[cod].get_tracking():
+            org = (persons[cod].get_cx(), persons[cod].get_cy() - 7)
+            persons[cod].reverse_track()
+            cv2.circle(frame, (bcenterX, bcenterY), 5, (0, 255, 0), -1)
+            cv2.putText(frame, str(cod), org, 0, 1, (0, 0, 255), 2)
 
 
 while ret:
     frameCount += 1
     ret, frame = video_cap.read()
+    frame = cv2.resize(frame, (640, 480))
     results = model(frame)
+#    garagem = frame[235:244, 165:312]
+#    roi = cv2.selectROI(frame)
+#    print(roi)
+#    results_parking = model(garagem)
+
+    if frameParking > 1 and not flag:
+        flag = not flag
+        print("O Carro ficou parado por ", (frameParking/fps), "segundos na frente da garagem")
 
     for result in results:
         pessoas = sum(1 for elemento in result.boxes.data.tolist() if elemento[-1] == 0.0)
@@ -38,43 +71,24 @@ while ret:
             class_id = int(class_id)
             bcenterX = int((x1 + x2)/2)
             bcenterY = int((y1 + y2)/2)
-            largura = 2
-            altura = 2
-            z1 = bcenterX - largura // 2
-            u1 = bcenterY - altura // 2
-            z2 = z1 + largura
-            u2 = u1 + altura
-            center = frame[u1:u2, z1:z2]
+            centerParkX = (215 + 506) / 2
+            centerParkY = (89 + 380) / 2
+            flag = math.hypot(centerParkX - (int(x1 + x2) / 2), centerParkY - (int(y1 + y2) / 2)) < 50
+
+            if class_id == 3 or 4 and flag:
+                if frameParking == 0:
+                    print("Um Carro está parado em frente a garagem")
+                frameParking += 1
+
 
             if class_id == 0:
                 #cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (255, 255, 255), 3)
                 if frameCount < 1:
                     boundingBoxPeople = frame[y1:y2, x1:x2]
-                    person = People(boundingBoxPeople, x1, x2, y1, y2, frameCount, center)
+                    person = People(boundingBoxPeople, x1, x2, y1, y2, frameCount)
                     persons.append(person)
-
                 else:
-                    flag = False
-                    for i in range(len(persons)):
-                        comp = persons[i].compare_centerpx(center)
-                        print(comp)
-                        if not flag and persons[i].getdistance(bcenterX, bcenterY, frameCount, fps) < pixels:
-                            print("a pessoa", i, " se moveu")
-                            persons[i].set_codinates(x1, x2, y1, y2)
-                            persons[i].set_lastframe(frameCount)
-                            persons[i].reverse_track()
-                            flag = True
-                    if not flag and len(persons) < pessoas:
-                        boundingBoxPeople = frame[y1:y2, x1:x2]
-                        person = People(boundingBoxPeople, x1, x2, y1, y2, frameCount, center)
-                        persons.append(person)
-
-            for cod in range(len(persons)):
-                if persons[cod].get_tracking():
-                    org = (persons[cod].get_cx(), persons[cod].get_cy() - 7)
-                    persons[cod].reverse_track()
-                    cv2.circle(frame, (bcenterX, bcenterY), 5, (0, 255, 0), -1)
-                    cv2.putText(frame, str(cod), org, 0, 1, (0, 0, 255), 2)
+                    tracking()
 
     cv2.imshow('teste', frame)
     cv2.waitKey(1)

@@ -9,14 +9,13 @@ class People:
     detections_time = []
     tracking = False
 
-    def __init__(self, image, x1, x2, y1, y2, frame, centerpx):
+    def __init__(self, image, x1, x2, y1, y2, frame):
         self.x1 = x1
         self.x2 = x2
         self.y1 = y1
         self.y2 = y2
         self.lastFrame = frame
         self.image = image
-        self.centerpx = centerpx
 
     def getdist_xmove(self):
         return self.x2 - self.x1
@@ -93,7 +92,6 @@ class People:
 
         return cv2.compareHist(histograma1, histograma2, cv2.HISTCMP_CORREL)
 
-
-    def viewCenter(self):
+    def viewcenter(self):
         cv2.imshow('centro', self.centerpx)
         cv2.waitKey(0)
