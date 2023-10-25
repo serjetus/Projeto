@@ -5,7 +5,7 @@ import random
 import cv2
 from ultralytics import YOLO
 from people import People
-
+from car import Car
 video = os.path.join('.', 'videos', 'Casa-Ch.mp4')
 
 
@@ -16,7 +16,7 @@ pixels = int((24/fps)*15)
 ret, frame = video_cap.read()
 
 model = YOLO("yolov8n.pt")
-
+carro = None
 persons = []
 frameCount = 0
 frameParking = 0
@@ -55,10 +55,6 @@ while ret:
 #    print(roi)
 #    results_parking = model(garagem)
 
-    if frameParking > 1 and not flag:
-        flag = not flag
-        print("O Carro ficou parado por ", (frameParking/fps), "segundos na frente da garagem")
-
     for result in results:
         pessoas = sum(1 for elemento in result.boxes.data.tolist() if elemento[-1] == 0.0)
         print("quantidade de pessoas detectadas: ", pessoas)
@@ -73,13 +69,12 @@ while ret:
             bcenterY = int((y1 + y2)/2)
             centerParkX = (215 + 506) / 2
             centerParkY = (89 + 380) / 2
-            flag = math.hypot(centerParkX - (int(x1 + x2) / 2), centerParkY - (int(y1 + y2) / 2)) < 50
+            flag = math.hypot(centerParkX - (int(x1 + x2) / 2), centerParkY - (int(y1 + y2) / 2)) < 30
 
-            if class_id == 3 or 4 and flag:
-                if frameParking == 0:
-                    print("Um Carro está parado em frente a garagem")
-                frameParking += 1
-
+            if class_id == 2 and carro is None and flag:
+                carro = Car(frame[y1:y2, x1:x2], frameCount)
+                print("Carro Estacionado em frente a garagem")
+                carro.viewimage()
 
             if class_id == 0:
                 #cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (255, 255, 255), 3)
