@@ -85,7 +85,7 @@ while ret:
                 else:
                     tracking()
 
-    cv2.imshow('teste', frame)
+    cv2.imshow('Camera', frame)
     cv2.waitKey(1)
 
 
