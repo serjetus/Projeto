@@ -29,15 +29,24 @@ class People:
     def get_tracking(self):
         return self.tracking
 
+    def compare_bouding(self, image):
+        altura1, largura1, canais1 = self.image.shape
+        altura2, largura2, canais2 = image.shape
+        if altura1 < altura2:
+            self.image = image
+
     def viewimage(self):
         cv2.imshow('pessoa', self.image)
-        cv2.waitKey(10)
+        cv2.waitKey(0)
 
     def set_codinates(self, x1, x2, y1, y2):
         self.x1 = x1
         self.x2 = x2
         self.y1 = y1
         self.y2 = y2
+
+    def extract_caracteristcs(self):
+        print(self.x1)
 
     def set_image(self, image):
         self.image = image

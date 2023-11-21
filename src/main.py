@@ -14,23 +14,31 @@ fps = video_cap.get(cv2.CAP_PROP_FPS)
 pixels = int((24/fps)*15)
 
 ret, frame = video_cap.read()
-
+altura, largura, canais = frame.shape
 model = YOLO("yolov8n.pt")
 carro = None
 persons = []
+personsT = []
 frameCount = 0
-frameParking = 0
 detection_threshold = 0.7
 flag = False
-
+centerParkX = (215 + 506) / 2
+centerParkY = (89 + 380) / 2
+stopedCars = []
 
 def tracking():
     flag_2 = False
     for i in range(len(persons)):
-        if not flag_2 and persons[i].getdistance(bcenterX, bcenterY, frameCount, fps) < pixels:
+        dist = persons[i].getdistance(bcenterX, bcenterY, frameCount, fps)
+        if not flag_2 and dist < pixels:
+            boxpeople = frame[y1:y2, x1:x2]
+            persons[i].compare_bouding(boxpeople)
             persons[i].set_codinates(x1, x2, y1, y2)
             persons[i].set_lastframe(frameCount)
             persons[i].reverse_track()
+            #persons[i].viewimage()
+            '''if dist + pixels < largura or dist - pixels > largura:
+                personsT.append(persons.pop(i))'''
             flag_2 = True
     if not flag_2 and len(persons) < pessoas:
         boundingboxpeople = frame[y1:y2, x1:x2]
@@ -50,10 +58,6 @@ while ret:
     ret, frame = video_cap.read()
     frame = cv2.resize(frame, (640, 480))
     results = model(frame)
-#    garagem = frame[235:244, 165:312]
-#    roi = cv2.selectROI(frame)
-#    print(roi)
-#    results_parking = model(garagem)
 
     for result in results:
         pessoas = sum(1 for elemento in result.boxes.data.tolist() if elemento[-1] == 0.0)
@@ -67,14 +71,18 @@ while ret:
             class_id = int(class_id)
             bcenterX = int((x1 + x2)/2)
             bcenterY = int((y1 + y2)/2)
-            centerParkX = (215 + 506) / 2
-            centerParkY = (89 + 380) / 2
             flag = math.hypot(centerParkX - (int(x1 + x2) / 2), centerParkY - (int(y1 + y2) / 2)) < 30
 
+            '''            if class_id == 2 and carro is not None and not flag:
+                carro = None'''
             if class_id == 2 and carro is None and flag:
-                carro = Car(frame[y1:y2, x1:x2], frameCount)
-                print("Carro Estacionado em frente a garagem")
-                carro.viewimage()
+                carro = Car(frame[y1:y2, x1:x2], frameCount, bcenterX, bcenterY)
+            else:
+                if carro is not None:
+                    if carro.getStopedTime(fps, frameCount) >= 10 and not carro.get_alerted():
+                        if carro.get_alerted():
+                            stopedCars.append(carro)
+                        carro.viewimage(bcenterX, bcenterY)
 
             if class_id == 0:
                 #cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (255, 255, 255), 3)
