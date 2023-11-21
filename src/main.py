@@ -46,8 +46,8 @@ def tracking():
         if persons[cod].get_tracking():
             org = (persons[cod].get_cx(), persons[cod].get_cy() - 7)
             persons[cod].reverse_track()
-            cv2.circle(frame, (bcenterX, bcenterY), 5, (0, 255, 0), -1)
-            cv2.putText(frame, str(cod), org, 0, 1, (0, 0, 255), 2)
+            #cv2.circle(frame, (bcenterX, bcenterY), 5, (0, 255, 0), -1)
+            #cv2.putText(frame, str(cod), org, 0, 1, (0, 0, 255), 2)
 
 
 while ret:
@@ -94,6 +94,9 @@ while ret:
 
     cv2.imshow('Camera', frame)
     cv2.waitKey(1)
+
+for i in range(len(personsT)):
+    personsT[i].extract_caracteristcs()
 
 
 video_cap.release()
