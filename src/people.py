@@ -45,6 +45,10 @@ class People:
         self.y1 = y1
         self.y2 = y2
 
+    def check_lost_track(self, fps, frame_count):
+        return ((frame_count - self.lastFrame)/fps) >= 5
+
+
     def extract_caracteristcs(self):
         print(self.x1)
 

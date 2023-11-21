@@ -1,7 +1,5 @@
 import math
 import os
-import random
-
 import cv2
 from ultralytics import YOLO
 from people import People
@@ -26,6 +24,7 @@ centerParkX = (215 + 506) / 2
 centerParkY = (89 + 380) / 2
 stopedCars = []
 
+
 def tracking():
     flag_2 = False
     for i in range(len(persons)):
@@ -36,10 +35,8 @@ def tracking():
             persons[i].set_codinates(x1, x2, y1, y2)
             persons[i].set_lastframe(frameCount)
             persons[i].reverse_track()
-            #persons[i].viewimage()
-            '''if dist + pixels < largura or dist - pixels > largura:
-                personsT.append(persons.pop(i))'''
             flag_2 = True
+
     if not flag_2 and len(persons) < pessoas:
         boundingboxpeople = frame[y1:y2, x1:x2]
         person1 = People(boundingboxpeople, x1, x2, y1, y2, frameCount)
@@ -58,7 +55,6 @@ while ret:
     ret, frame = video_cap.read()
     frame = cv2.resize(frame, (640, 480))
     results = model(frame)
-
     for result in results:
         pessoas = sum(1 for elemento in result.boxes.data.tolist() if elemento[-1] == 0.0)
         print("quantidade de pessoas detectadas: ", pessoas)
@@ -72,6 +68,9 @@ while ret:
             bcenterX = int((x1 + x2)/2)
             bcenterY = int((y1 + y2)/2)
             flag = math.hypot(centerParkX - (int(x1 + x2) / 2), centerParkY - (int(y1 + y2) / 2)) < 30
+            for rmv in range(len(persons)):
+                if persons[rmv].check_lost_track(fps, frameCount):
+                    personsT.append(persons.pop(rmv))
 
             '''            if class_id == 2 and carro is not None and not flag:
                 carro = None'''
