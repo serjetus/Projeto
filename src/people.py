@@ -2,6 +2,14 @@ import math
 import cv2
 
 
+def split_image(imagem):
+    altura, largura, canais = imagem.shape
+    metade_altura = altura // 2
+    superior = imagem[:metade_altura, :]
+    inferior = imagem[metade_altura:, :]
+    return superior, inferior
+
+
 class People:
     caracterics = []
     detections = 0
@@ -47,24 +55,17 @@ class People:
     def check_lost_track(self, fps, frame_count):
         return ((frame_count - self.lastFrame)/fps) >= 5
 
-    def split_image(self, imagem):
-        altura, largura, canais = imagem.shape
-        metade_altura = altura // 2
-        superior = imagem[:metade_altura, :]
-        inferior = imagem[metade_altura:, :]
-        return superior, inferior
-
     def extract_caracteristcs(self):
         splitimages = [self.image]
         for _ in range(2):
-            superior, inferior = self.split_image(splitimages.pop(0))
+            superior, inferior = split_image(splitimages.pop(0))
             splitimages.extend([superior, inferior])
-        _, inferior_final = self.split_image(splitimages.pop(0))
+        _, inferior_final = split_image(splitimages.pop(0))
         splitimages.append(inferior_final)
 
-        for i in range(len(splitimages)):
+        '''        for i in range(len(splitimages)):
             cv2.imshow("recorte", splitimages[i])
-            cv2.waitKey(0)
+            cv2.waitKey(0)'''
 
     def set_image(self, image):
         self.image = image

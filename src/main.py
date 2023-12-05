@@ -46,8 +46,8 @@ def tracking():
         if persons[cod].get_tracking():
             org = (persons[cod].get_cx(), persons[cod].get_cy() - 7)
             persons[cod].reverse_track()
-            #cv2.circle(frame, (bcenterX, bcenterY), 5, (0, 255, 0), -1)
-            #cv2.putText(frame, str(cod), org, 0, 1, (0, 0, 255), 2)
+            cv2.circle(frame, (bcenterX, bcenterY), 5, (0, 255, 0), -1)
+            cv2.putText(frame, str(cod), org, 0, 1, (0, 0, 255), 2)
 
 
 while ret:
@@ -57,7 +57,6 @@ while ret:
     results = model(frame)
     for result in results:
         pessoas = sum(1 for elemento in result.boxes.data.tolist() if elemento[-1] == 0.0)
-        print("quantidade de pessoas detectadas: ", pessoas)
         for r in result.boxes.data.tolist():
             x1, y1, x2, y2, score, class_id = r
             x1 = int(x1)
@@ -71,6 +70,7 @@ while ret:
             for rmv in range(len(persons)):
                 if persons[rmv].check_lost_track(fps, frameCount):
                     personsT.append(persons.pop(rmv))
+                    personsT[len(personsT)-1].extract_caracteristcs()
 
             '''            if class_id == 2 and carro is not None and not flag:
                 carro = None'''
@@ -94,10 +94,6 @@ while ret:
 
     cv2.imshow('Camera', frame)
     cv2.waitKey(1)
-
-for i in range(len(personsT)):
-    personsT[i].extract_caracteristcs()
-
 
 video_cap.release()
 cv2.destroyAllWindows()
