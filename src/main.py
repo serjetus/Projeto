@@ -46,15 +46,15 @@ def tracking():
         if persons[cod].get_tracking():
             org = (persons[cod].get_cx(), persons[cod].get_cy() - 7)
             persons[cod].reverse_track()
-            cv2.circle(frame, (bcenterX, bcenterY), 5, (0, 255, 0), -1)
-            cv2.putText(frame, str(cod), org, 0, 1, (0, 0, 255), 2)
+            #cv2.circle(frame, (bcenterX, bcenterY), 5, (0, 255, 0), -1)
+            #cv2.putText(frame, str(cod), org, 0, 1, (0, 0, 255), 2)
 
 
 while ret:
     frameCount += 1
     ret, frame = video_cap.read()
     frame = cv2.resize(frame, (640, 480))
-    results = model(frame)
+    results = model(frame, )
     for result in results:
         pessoas = sum(1 for elemento in result.boxes.data.tolist() if elemento[-1] == 0.0)
         for r in result.boxes.data.tolist():
@@ -70,7 +70,7 @@ while ret:
             for rmv in range(len(persons)):
                 if persons[rmv].check_lost_track(fps, frameCount):
                     personsT.append(persons.pop(rmv))
-                    personsT[len(personsT)-1].extract_caracteristcs()
+                    personsT[len(personsT)-1].extract_caracteristcs() #a pessoa que saiu do rastreamento
 
             '''            if class_id == 2 and carro is not None and not flag:
                 carro = None'''

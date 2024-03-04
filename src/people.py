@@ -1,7 +1,8 @@
 import math
 import cv2
-
-
+from ultralytics import YOLO
+modelpose= YOLO('yolov8n-pose.pt')
+from models import GetKeypoint
 def split_image(imagem):
     altura, largura, canais = imagem.shape
     metade_altura = altura // 2
@@ -56,16 +57,31 @@ class People:
         return ((frame_count - self.lastFrame)/fps) >= 5
 
     def extract_caracteristcs(self):
-        splitimages = [self.image]
-        for _ in range(2):
-            superior, inferior = split_image(splitimages.pop(0))
-            splitimages.extend([superior, inferior])
-        _, inferior_final = split_image(splitimages.pop(0))
-        splitimages.append(inferior_final)
+        results = modelpose(source=self.image, )
+        get_name = GetKeypoint()
 
-        '''        for i in range(len(splitimages)):
-            cv2.imshow("recorte", splitimages[i])
-            cv2.waitKey(0)'''
+        for keypoint in results:
+            results_keypoint = keypoint.keypoints.data.tolist()
+            print(results_keypoint)
+            results_list = [
+                list(results_keypoint[0][get_name.LEFT_SHOULDER]),
+                list(results_keypoint[0][get_name.RIGHT_SHOULDER]),
+                list(results_keypoint[0][get_name.LEFT_ELBOW]),
+                list(results_keypoint[0][get_name.RIGHT_ELBOW]),
+                list(results_keypoint[0][get_name.LEFT_WRIST]),
+                list(results_keypoint[0][get_name.RIGHT_WRIST]),
+                list(results_keypoint[0][get_name.LEFT_KNEE]),
+                list(results_keypoint[0][get_name.RIGHT_KNEE]),
+                list(results_keypoint[0][get_name.LEFT_ANKLE]),
+                list(results_keypoint[0][get_name.RIGHT_ANKLE])
+            ]
+
+            for x, y, _ in results_list:
+                cv2.circle(self.image, (int(x), int(y)), 1, (0, 255, 0), -1)
+            cv2.imshow("teste", self.image)
+            cv2.waitKey(0)
+            print("-----------------------")
+            #print(keypoint.keypoints.data.tolist())
 
     def set_image(self, image):
         self.image = image
