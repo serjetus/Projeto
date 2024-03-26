@@ -1,5 +1,6 @@
 from models import GetKeypoint
 import numpy as np
+import matplotlib.pyplot as plt
 import math
 import cv2
 from ultralytics import YOLO
@@ -55,8 +56,17 @@ def replace_non_white_pixels_with_black(image):
     return result
 
 
+def most_frequent_color(image):
+    imagem_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    histograma = cv2.calcHist([imagem_rgb], [0, 1, 2], None, [256, 256, 256], [0, 256, 0, 256, 0, 256])
+    indice_maior_frequencia = np.unravel_index(np.argmax(histograma), histograma.shape)
+    cor_maior_frequencia = (indice_maior_frequencia[0], indice_maior_frequencia[1], indice_maior_frequencia[2])
+    return cor_maior_frequencia
+
+
 class People:
     caracterics = []
+    clothes_color = []
     detections = 0
     detections_time = []
     tracking = False
@@ -150,13 +160,22 @@ class People:
                 if self.compare_circles(list_re[5][0]):
                     self.caracterics.append('MANGA LONGA')
                 else:
-                self.caracterics.append('REGATA')
+                    self.caracterics.append('REGATA')
             else:
                 self.caracterics.append('CAMISA')
             if self.compare_circles(list_re[7][0], list_re[7][1]):
                 self.caracterics.append('SHORTS')
             else:
                 self.caracterics.append('CALÇA')
+
+            shirt_image = self.image[int(list_re[1][1]):int(list_re[10][1]), int(list_re[1][0]):, :]
+            color = most_frequent_color(shirt_image)
+            self.clothes_color.append(color)
+            legs_image = self.image[int(list_re[10][1]):int(list_re[7][1]), int(list_re[10][0]):, :]
+            cv2.imshow('legs', legs_image)
+            color = most_frequent_color(legs_image)
+            self.clothes_color.append(color)
+            print("Cor de maior frequência (RGB):", color)
 
             print(self.caracterics)
             cv2.waitKey(0)
@@ -165,7 +184,6 @@ class People:
         x = int(x)
         y = int(y)
         b, g, r = self.skin_segmentation[y, x] / 255.0
-        print ((b, g, r) == (1.0, 1.0, 1.0))
         return (b, g, r) == (1.0, 1.0, 1.0)
 
     def set_image(self, image):
