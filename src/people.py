@@ -147,6 +147,9 @@ class People:
                 self.set_height(list_re[1][1] - list_re[5][1])
 
             if self.compare_circles(list_re[1][0], list_re[1][1]) and self.compare_circles(list_re[3][0], list_re[3][1]):
+                if self.compare_circles(list_re[5][0]):
+                    self.caracterics.append('MANGA LONGA')
+                else:
                 self.caracterics.append('REGATA')
             else:
                 self.caracterics.append('CAMISA')
