@@ -59,11 +59,7 @@ while ret:
         pessoas = sum(1 for elemento in result.boxes.data.tolist() if elemento[-1] == 0.0)
         for r in result.boxes.data.tolist():
             x1, y1, x2, y2, score, class_id = r
-            x1 = int(x1)
-            y1 = int(y1)
-            x2 = int(x2)
-            y2 = int(y2)
-            class_id = int(class_id)
+            x1, y1, x2, y2, class_id = map(int, (x1, y1, x2, y2, class_id))
             bcenterX = int((x1 + x2)/2)
             bcenterY = int((y1 + y2)/2)
             flag = math.hypot(centerParkX - (int(x1 + x2) / 2), centerParkY - (int(y1 + y2) / 2)) < 30
@@ -84,7 +80,6 @@ while ret:
                         carro.viewimage(bcenterX, bcenterY)
 
             if class_id == 0:
-                #cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (255, 255, 255), 3)
                 if frameCount < 1:
                     boundingBoxPeople = frame[y1:y2, x1:x2]
                     person = People(boundingBoxPeople, x1, x2, y1, y2, frameCount)
