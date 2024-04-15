@@ -23,9 +23,10 @@ class Car:
     def get_alerted(self):
         return self.alerted
 
+
     def viewimage(self, centerx, centery):
+        cv2.imwrite("carro.jpg", self.image)
         cv2.imshow('Carro Estacionado em frente a garagem', self.image)
-        print("Carro Estacionado em frente a garagem")
         self.alerted = True
         #cv2.waitKey(0)
 

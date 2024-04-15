@@ -65,10 +65,6 @@ def most_frequent_color(image):
 
 
 class People:
-    caracterics = []
-    clothes_color = []
-    detections = 0
-    detections_time = []
     tracking = False
 
     def __init__(self, image, x1, x2, y1, y2, frame):
@@ -80,6 +76,10 @@ class People:
         self.image = image
         self.skin_segmentation = image
         self.height_pixels = 0
+        self.caracterics = []
+        self.clothes_color = []
+        self.detections = 1
+        self.detections_time = []
 
     def getdist_xmove(self):
         return self.x2 - self.x1
@@ -109,6 +109,8 @@ class People:
         self.y1 = y1
         self.y2 = y2
 
+    def set_timedetection(self, time):
+        self.detections_time.append(time)
     def set_height(self, height):
         self.height_pixels = height
 
@@ -148,21 +150,17 @@ class People:
                 list(results_keypoint[0][get_name.RIGHT_HIP]),
                 list(results_keypoint[0][get_name.LEFT_HIP])
             ]
-
-            '''for x, y, confidence in list_re:
-                if confidence > 0.6:
-                    cv2.circle(blurred, (int(x), int(y)), 1, (0, 255, 0), -1)'''
-
             if list_re[1][2] and list_re[5][2] > 0.6:
                 self.set_height(list_re[1][1] - list_re[5][1])
 
             if self.compare_circles(list_re[1][0], list_re[1][1]) and self.compare_circles(list_re[3][0], list_re[3][1]):
-                if self.compare_circles(list_re[5][0]):
+                if self.compare_circles(list_re[5][0], list_re[5][1]):
                     self.caracterics.append('MANGA LONGA')
                 else:
                     self.caracterics.append('REGATA')
             else:
                 self.caracterics.append('CAMISA')
+
             if self.compare_circles(list_re[7][0], list_re[7][1]):
                 self.caracterics.append('SHORTS')
             else:
@@ -171,14 +169,9 @@ class People:
             shirt_image = self.image[int(list_re[1][1]):int(list_re[10][1]), int(list_re[1][0]):, :]
             color = most_frequent_color(shirt_image)
             self.clothes_color.append(color)
-            legs_image = self.image[int(list_re[10][1]):int(list_re[7][1]), int(list_re[10][0]):, :]
-            cv2.imshow('legs', legs_image)
+            legs_image = self.image[int(list_re[10][1]):int(list_re[10][1])+7, int(list_re[10][0]):int(list_re[10][0])+7, :]
             color = most_frequent_color(legs_image)
             self.clothes_color.append(color)
-            print("Cor de maior frequência (RGB):", color)
-
-            print(self.caracterics)
-            cv2.waitKey(0)
 
     def compare_circles(self, x, y):
         x = int(x)
@@ -204,6 +197,11 @@ class People:
     def set_y2(self, value):
         self.y2 = value
 
+    def set_detections(self, value):
+        self.detections = value
+
+    def get_detections(self):
+        return self.detections
     def get_image(self):
         return self.image
 
@@ -232,6 +230,9 @@ class People:
         distance = math.hypot(cx - (int(self.x1+self.x2)/2), cy - (int(self.y1 + self.y2) / 2))
         sec = int((frame - self.lastFrame))
         return distance/sec if sec > 0 else distance
+
+    def getstopedtime(self, fps, frame):
+        return (frame-self.frame)/fps
 
     def viewcenter(self):
         cv2.imshow('centro', self.centerpx)
