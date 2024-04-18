@@ -82,16 +82,22 @@ while ret:
                 if persons[rmv].check_lost_track(fps, frameCount):
                     removed_person = persons.pop(rmv)
                     removed_person.set_timedetection(datetime.datetime.now())
+                    print("EXTRAINDO")
                     removed_person.extract_caracteristcs()
+                    print(removed_person.caracterics)
                     match_flag = False
                     for personC in personsT:
+                        print("COMPARANDO")
+                        print("", removed_person.caracterics, "= ", personC.caracterics)
+                        print("", removed_person.clothes_color, "= ", personC.clothes_color)
                         match_flag = personC.caracterics == removed_person.caracterics and personC.clothes_color == removed_person.clothes_color
                         if match_flag:
+                            print("REDETECÇÂO")
                             personC.set_detections(personC.get_detections() + 1)
                             removed_person = None
-                            '''print(personC.get_detections())'''
                             break
                     if not match_flag:
+                        print("ADICIONADO")
                         personsT.append(removed_person)
                         removed_person = None
                     # personsT[len(personsT)-1].extract_caracteristcs() #a pessoa que saiu do rastreamento
@@ -105,9 +111,9 @@ while ret:
                     if carro.getStopedTime(fps, frameCount) >= 10 and not carro.get_alerted():
                         if carro.get_alerted():
                             stopedCars.append(carro)
-                        kt.sendwhats_image("+5518996213836", "../pythonProject/carro.jpg", "Carro estacionado")
                         carro.viewimage(bcenterX, bcenterY)
-                        os.remove("../pythonProject/carro.jpg")
+                        kt.sendwhats_image("+5518996213836", "../pythonProject/carro.jpg", "Carro estacionado")
+                        
 
             if class_id == 0:
                 if frameCount < 1:

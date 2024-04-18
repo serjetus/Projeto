@@ -1,7 +1,9 @@
 import cv2
 
+
 class Car:
     alerted = False
+
     def __init__(self, image, frame, centerx, centery):
         self.image = image
         self.frame = frame
@@ -22,7 +24,6 @@ class Car:
 
     def get_alerted(self):
         return self.alerted
-
 
     def viewimage(self, centerx, centery):
         cv2.imwrite("carro.jpg", self.image)
