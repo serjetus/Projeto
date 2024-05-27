@@ -4,18 +4,19 @@ import matplotlib.pyplot as plt
 import math
 import cv2
 from ultralytics import YOLO
-modelpose= YOLO('yolov8n-pose.pt')
+
+modelpose = YOLO('yolov8n-pose.pt')
 
 
 def color_detection_rgb(image):
-    condition1 = (image[:, :, 0] > 95) & (image[:, :, 1] > 40) & (image[:, :, 2] > 20) & \
-                 (np.max(image, axis=-1) - np.min(image, axis=-1) > 15) & \
-                 (np.abs(image[:, :, 0] - image[:, :, 1]) > 15) & \
-                 (image[:, :, 0] > image[:, :, 1]) & (image[:, :, 0] > image[:, :, 2])
+    condition1 = ((image[:, :, 0] > 95) & (image[:, :, 1] > 40) & (image[:, :, 2] > 20) &
+                  (np.max(image, axis=-1) - np.min(image, axis=-1) > 15) &
+                  (np.abs(image[:, :, 0] - image[:, :, 1]) > 15) &
+                  (image[:, :, 0] > image[:, :, 1]) & (image[:, :, 0] > image[:, :, 2]))
 
-    condition2 = (image[:, :, 0] > 220) & (image[:, :, 1] > 210) & (image[:, :, 2] > 170) & \
-                 (np.abs(image[:, :, 0] - image[:, :, 1]) <= 15) & \
-                 (image[:, :, 0] > image[:, :, 2]) & (image[:, :, 1] > image[:, :, 2])
+    condition2 = ((image[:, :, 0] > 220) & (image[:, :, 1] > 210) & (image[:, :, 2] > 170) &
+                  (np.abs(image[:, :, 0] - image[:, :, 1]) <= 15) &
+                  (image[:, :, 0] > image[:, :, 2]) & (image[:, :, 1] > image[:, :, 2]))
 
     mask = condition1 | condition2
     result = cv2.bitwise_and(image, image, mask=mask.astype(np.uint8))
@@ -49,6 +50,28 @@ def replace_non_black_pixels_with_white(image):
     return result
 
 
+def find_distance_to_white(image, x, y, distance=0):
+    x = int(x)
+    y = int(y)
+    if x < 0 or y < 0 or x >= image.shape[1] or y >= image.shape[0]:
+        return distance
+
+    if image[y, x] == [255, 255, 255]:
+        return distance
+
+    if image[y, x] == [0, 0, 0]:
+        image[y, x] = [125, 128, 128]
+
+        distances = [find_distance_to_white(image, x + 1, y, distance + 1),
+                     find_distance_to_white(image, x - 1, y, distance + 1),
+                     find_distance_to_white(image, x, y + 1, distance + 1),
+                     find_distance_to_white(image, x, y - 1, distance + 1)]
+
+        return min(distances)
+
+    return float('inf')
+
+
 def replace_non_white_pixels_with_black(image):
     non_white_mask = cv2.inRange(image, (0, 0, 0), (254, 254, 254))
     result = image.copy()
@@ -57,11 +80,11 @@ def replace_non_white_pixels_with_black(image):
 
 
 def most_frequent_color(image):
-    imagem_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    histograma = cv2.calcHist([imagem_rgb], [0, 1, 2], None, [256, 256, 256], [0, 256, 0, 256, 0, 256])
-    indice_maior_frequencia = np.unravel_index(np.argmax(histograma), histograma.shape)
-    cor_maior_frequencia = (indice_maior_frequencia[0], indice_maior_frequencia[1], indice_maior_frequencia[2])
-    return cor_maior_frequencia
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hist_hue = cv2.calcHist([hsv_image], [0], None, [256], [0, 256])
+    max_freq_index = np.argmax(hist_hue)
+    most_common_hue = max_freq_index / 2
+    return most_common_hue
 
 
 class People:
@@ -111,29 +134,32 @@ class People:
 
     def set_timedetection(self, time):
         self.detections_time.append(time)
+
     def set_height(self, height):
         self.height_pixels = height
 
     def check_lost_track(self, fps, frame_count):
-        return ((frame_count - self.lastFrame)/fps) >= 5
+        return ((frame_count - self.lastFrame) / fps) >= 5
 
     def extract_caracteristcs(self):
+        #cv2.imshow('pessoa', self.image)
+
         result_hsv = color_detection_hsv(self.image)
         result_ycrcb = color_detection_ycrcb(self.image)
         result_rgb = color_detection_rgb(self.image)
         final_result = cv2.bitwise_and(result_hsv, result_ycrcb)
         final_result = replace_non_black_pixels_with_white(final_result)
-        blurred = cv2.GaussianBlur(final_result, (5, 5), 0)
-        gradient_x = cv2.Sobel(blurred, cv2.CV_64F, 1, 0, ksize=3)
-        gradient_y = cv2.Sobel(blurred, cv2.CV_64F, 0, 1, ksize=3)
         kernel = np.ones((3, 3), np.uint8)
+        blurred = cv2.erode(final_result, kernel, 1)
         blurred = cv2.dilate(blurred, kernel, 1)
-        self.skin_segmentation = replace_non_white_pixels_with_black(blurred)
+        blurred = cv2.dilate(blurred, kernel, 1)
+        blurred = cv2.dilate(blurred, kernel, 1)
+        self.skin_segmentation = blurred
         #final_result = cv2.bitwise_and(result_hsv, cv2.bitwise_and(result_ycrcb, result_rgb))
-
+        #cv2.imshow('com RGB ____________________', final_result)
         results = modelpose(source=self.image, )
         get_name = GetKeypoint()
-
+        #cv2.imshow('blurred', self.skin_segmentation)
         for keypoint in results:
             results_keypoint = keypoint.keypoints.data.tolist()
             list_re = [
@@ -150,28 +176,70 @@ class People:
                 list(results_keypoint[0][get_name.RIGHT_HIP]),
                 list(results_keypoint[0][get_name.LEFT_HIP])
             ]
-            if list_re[1][2] and list_re[5][2] > 0.6:
+            if list_re[0][2] and list_re[5][2] > 0.6:
                 self.set_height(list_re[1][1] - list_re[5][1])
 
-            if self.compare_circles(list_re[1][0], list_re[1][1]) and self.compare_circles(list_re[3][0], list_re[3][1]):
-                if self.compare_circles(list_re[5][0], list_re[5][1]):
-                    self.caracterics.append('MANGA LONGA')
+            flag = False
+            if not flag:
+                if self.compare_circles(list_re[0][0], list_re[0][1]):  #ombro E branco?
+                    self.caracterics.append("REGATA")
                 else:
-                    self.caracterics.append('REGATA')
-            else:
-                self.caracterics.append('CAMISA')
+                    if self.compare_circles(list_re[2][0], list_re[2][1]):
+                        self.caracterics.append("CAMISA")
+                    else:
+                        self.caracterics.append("MANGA LONGA")
+                    flag = True
 
-            if self.compare_circles(list_re[7][0], list_re[7][1]):
-                self.caracterics.append('SHORTS')
-            else:
-                self.caracterics.append('CALÇA')
+            if not flag:
+                if self.compare_circles(list_re[1][0], list_re[1][1]):  #ombro D branco?
+                    self.caracterics.append("REGATA")
+                else:
+                    if self.compare_circles(list_re[3][0], list_re[3][1]):
+                        self.caracterics.append("CAMISA")
+                    else:
+                        self.caracterics.append("MANGA LONGA")
 
-            shirt_image = self.image[int(list_re[1][1]):int(list_re[10][1]), int(list_re[1][0]):, :]
+            flag = False
+            if not flag:
+                if self.compare_circles(list_re[7][0], list_re[7][1] + 5):
+                    self.caracterics.append('SHORTS')
+                else:
+                    #print("DISTANCE:", find_distance_to_white(self.skin_segmentation, list_re[7][0], list_re[7][1], 0))
+                    self.caracterics.append('CALÇA')
+                flag = True
+
+            if not flag:
+                if self.compare_circles(list_re[6][0], list_re[6][1] + 5):
+                    self.caracterics.append('SHORTS')
+                else:
+                    #print("DISTANCE:", find_distance_to_white(self.skin_segmentation, list_re[6][0], list_re[6][1], 0))
+                    self.caracterics.append('CALÇA')
+
+            if list_re[1][2] > list_re[0][2]:
+                shirt_image = self.image[int(list_re[1][1]):int(list_re[10][1]), int(list_re[1][0]):, :]
+            else:
+                shirt_image = self.image[int(list_re[0][1]):int(list_re[11][1]), int(list_re[0][0]):, :]
+
+            altura, largura, _ = shirt_image.shape
+            x1 = largura // 2 - 4
+            y1 = altura // 2 - 4
+            x2 = largura // 2 + 4
+            y2 = altura // 2 + 4
+            shirt_image = shirt_image[y1:y2, x1:x2]
             color = most_frequent_color(shirt_image)
             self.clothes_color.append(color)
-            legs_image = self.image[int(list_re[10][1]):int(list_re[10][1])+7, int(list_re[10][0]):int(list_re[10][0])+7, :]
+            if list_re[10][2] > list_re[11][2]:
+                legs_image = self.image[int(list_re[10][1]):int(list_re[10][1]) + 7,
+                             int(list_re[10][0]):int(list_re[10][0]) + 7, :]
+            else:
+                legs_image = self.image[int(list_re[11][1]):int(list_re[11][1]) + 7,
+                             int(list_re[11][0]):int(list_re[11][0]) + 7, :]
+                # cv2.imshow('legs', legs_image)
+                cv2.waitKey(0)
             color = most_frequent_color(legs_image)
             self.clothes_color.append(color)
+            print(self.clothes_color)
+            # cv2.waitKey(0)
 
     def compare_circles(self, x, y):
         x = int(x)
@@ -180,6 +248,7 @@ class People:
         return (b, g, r) == (1.0, 1.0, 1.0)
 
     def set_image(self, image):
+        self.image = None
         self.image = image
 
     def set_lastframe(self, value):
@@ -202,6 +271,7 @@ class People:
 
     def get_detections(self):
         return self.detections
+
     def get_image(self):
         return self.image
 
@@ -221,18 +291,18 @@ class People:
         return self.y2
 
     def get_cx(self):
-        return int((self.x1 + self.x2)/2)
+        return int((self.x1 + self.x2) / 2)
 
     def get_cy(self):
-        return int((self.y1 + self.y2)/2)
+        return int((self.y1 + self.y2) / 2)
 
     def getdistance(self, cx, cy, frame, fps):
-        distance = math.hypot(cx - (int(self.x1+self.x2)/2), cy - (int(self.y1 + self.y2) / 2))
+        distance = math.hypot(cx - (int(self.x1 + self.x2) / 2), cy - (int(self.y1 + self.y2) / 2))
         sec = int((frame - self.lastFrame))
-        return distance/sec if sec > 0 else distance
+        return distance / sec if sec > 0 else distance
 
     def getstopedtime(self, fps, frame):
-        return (frame-self.frame)/fps
+        return (frame - self.frame) / fps
 
     def viewcenter(self):
         cv2.imshow('centro', self.centerpx)
