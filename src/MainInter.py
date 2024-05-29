@@ -12,6 +12,7 @@ from main import process
 
 class VideoApp:
     def __init__(self, root):
+        self.roi_coords = None
         self.warning_count = None
         self.detection_threshold = "2"
         self.time_threshold = "10"
@@ -26,7 +27,6 @@ class VideoApp:
         self.roi_count = 0
         self.frameCount = 0
         self.rois = []
-
 
         self.canvas = tk.Canvas(root)
         self.canvas.pack()
@@ -74,16 +74,59 @@ class VideoApp:
         self.paused = not self.paused
 
     def select_roi(self, roi_num):
-        if self.cap and not self.paused:
+        if self.cap:
             self.paused = True
             ret, frame = self.cap.read()
             if ret:
-                roi = cv2.selectROI("Select ROI", frame, fromCenter=False, showCrosshair=True)
-                x, y, w, h = roi
-                roi_cropped = frame[int(y):int(y + h), int(x):int(x + w)]
-                self.rois.append((roi_num, roi_cropped))
-                cv2.destroyWindow("Select ROI")
-                self.paused = False
+                self.roi_selection_window(frame, roi_num)
+
+    def roi_selection_window(self, frame, roi_num):
+        selection_window = tk.Toplevel(self.root)
+        selection_window.title("Select ROI")
+
+        img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(img)
+        img = img.resize((640, 480))  # Redimensionar a imagem para 640x480
+        img_tk = ImageTk.PhotoImage(img)
+
+        canvas = tk.Canvas(selection_window, width=640, height=480)
+        canvas.pack()
+        canvas.create_image(0, 0, anchor=tk.NW, image=img_tk)
+        canvas.image = img_tk
+
+        self.roi_coords = None
+
+        def on_mouse_down(event):
+            self.roi_coords = (event.x, event.y)
+            canvas.delete("roi")  # Remove qualquer ROI anterior desenhada
+
+        def on_mouse_up(event):
+            x1, y1 = self.roi_coords
+            x2, y2 = event.x, event.y
+            w, h = x2 - x1, y2 - y1
+            new_roi = (roi_num, (x1, y1, w, h))
+
+            # Substituir as coordenadas da ROI com o mesmo roi_num, se existir
+            for i, (num, coords) in enumerate(self.rois):
+                if num == roi_num:
+                    self.rois[i] = new_roi
+                    break
+            else:
+                self.rois.append(new_roi)
+            print(self.rois)
+            selection_window.destroy()
+            self.paused = False
+
+        def on_mouse_move(event):
+            if self.roi_coords:
+                canvas.delete("roi")
+                x1, y1 = self.roi_coords
+                x2, y2 = event.x, event.y
+                canvas.create_rectangle(x1, y1, x2, y2, outline='red', tag="roi")
+
+        canvas.bind("<ButtonPress-1>", on_mouse_down)
+        canvas.bind("<ButtonRelease-1>", on_mouse_up)
+        canvas.bind("<Motion>", on_mouse_move)
 
     def open_settings_window(self):
         settings_window = tk.Toplevel(self.root)
@@ -143,7 +186,7 @@ class VideoApp:
         if self.cap and not self.paused:
             ret, frame = self.cap.read()
             frame = cv2.resize(frame, (640, 480))
-            process(frame, self.frameCount, self.fps, self.pixels, self.time_threshold, self.warning_count)
+            process(frame, self.frameCount, self.fps, self.pixels, self.time_threshold, self.warning_count, self.time_thresholdP)
             self.frameCount = self.frameCount + 1
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

@@ -45,7 +45,35 @@ def tracking(fps, pixels, frame, framecount, x1, x2, y1, y2, bcenterx, bcentery,
 # telefone, roi1, roi2, roi3, limite, tempo
 
 
-def process(frame, framecount, fps, pixels, tempo_carro, telefone):
+def extraction_process(fps, framecount):
+    global persons, personsT
+    match_flag = False
+    for rmv in range(len(persons)):
+        if persons[rmv].check_lost_track(fps, framecount):
+            removed_person = persons.pop(rmv)
+            removed_person.set_timedetection(datetime.datetime.now())
+            print("EXTRAINDO")
+            removed_person.extract_caracteristcs()
+            print(removed_person.caracterics)
+            match_flag = False
+            for personC in personsT:
+                print("COMPARANDO")
+                print("", removed_person.caracterics, "= ", personC.caracterics)
+                print("", removed_person.clothes_color, "= ", personC.clothes_color)
+                match_flag = personC.caracterics == removed_person.caracterics and personC.clothes_color == removed_person.clothes_color
+                if match_flag:
+                    print("REDETECÇÂO")
+                    personC.set_detections(personC.get_detections() + 1)
+                    removed_person = None
+                    break
+            if not match_flag:
+                print("ADICIONADO")
+                personsT.append(removed_person)
+                removed_person = None
+            # personsT[len(personsT)-1].extract_caracteristcs() #a pessoa que saiu do rastreamento
+
+
+def process(frame, framecount, fps, pixels, tempo_carro, telefone, tempo_pessoa):
     global carro, persons, personsT, centerParkX, centerParkY, centerparkGate_x, centerparkGate_y, stopedCars
     flag = False
     results = model(frame, verbose=False)
@@ -61,30 +89,8 @@ def process(frame, framecount, fps, pixels, tempo_carro, telefone):
             cv2.rectangle(frame, (215, 89), (506, 380), (0, 0, 255), 0)
             flag = math.hypot(centerParkX - (int(x1 + x2) / 2), centerParkY - (int(y1 + y2) / 2)) < 30
             flag_gate = math.hypot(centerparkGate_x - (int(x1 + x2) / 2), centerparkGate_y - (int(y1 + y2) / 2)) < 30
-            match_flag = False
-            for rmv in range(len(persons)):
-                if persons[rmv].check_lost_track(fps, framecount):
-                    removed_person = persons.pop(rmv)
-                    removed_person.set_timedetection(datetime.datetime.now())
-                    print("EXTRAINDO")
-                    removed_person.extract_caracteristcs()
-                    print(removed_person.caracterics)
-                    match_flag = False
-                    for personC in personsT:
-                        print("COMPARANDO")
-                        print("", removed_person.caracterics, "= ", personC.caracterics)
-                        print("", removed_person.clothes_color, "= ", personC.clothes_color)
-                        match_flag = personC.caracterics == removed_person.caracterics and personC.clothes_color == removed_person.clothes_color
-                        if match_flag:
-                            print("REDETECÇÂO")
-                            personC.set_detections(personC.get_detections() + 1)
-                            removed_person = None
-                            break
-                    if not match_flag:
-                        print("ADICIONADO")
-                        personsT.append(removed_person)
-                        removed_person = None
-                    # personsT[len(personsT)-1].extract_caracteristcs() #a pessoa que saiu do rastreamento
+
+            extraction_process(fps, framecount)
 
             '''            if class_id == 2 and carro is not None and not flag:
                 carro = None'''
