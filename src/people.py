@@ -155,11 +155,11 @@ class People:
         blurred = cv2.dilate(blurred, kernel, 1)
         blurred = cv2.dilate(blurred, kernel, 1)
         self.skin_segmentation = blurred
-        #final_result = cv2.bitwise_and(result_hsv, cv2.bitwise_and(result_ycrcb, result_rgb))
-        #cv2.imshow('com RGB ____________________', final_result)
+        # final_result = cv2.bitwise_and(result_hsv, cv2.bitwise_and(result_ycrcb, result_rgb))
+        # cv2.imshow('com RGB ____________________', final_result)
         results = modelpose(source=self.image, )
         get_name = GetKeypoint()
-        #cv2.imshow('blurred', self.skin_segmentation)
+        # cv2.imshow('blurred', self.skin_segmentation)
         for keypoint in results:
             results_keypoint = keypoint.keypoints.data.tolist()
             list_re = [

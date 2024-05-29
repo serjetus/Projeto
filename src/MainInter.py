@@ -12,6 +12,10 @@ from main import process
 
 class VideoApp:
     def __init__(self, root):
+        self.show_rois_var = tk.BooleanVar(value=False)
+        self.show_central_point_var = tk.BooleanVar(value=False)
+        self.show_central_point_checkbox = None
+        self.show_rois_checkbox = None
         self.roi_coords = None
         self.warning_count = None
         self.detection_threshold = "2"
@@ -26,9 +30,9 @@ class VideoApp:
         self.cap = None
         self.roi_count = 0
         self.frameCount = 0
-        self.rois = []
+        self.rois = [(1, (205, 83, 517, 388)), (2, (36, 70, 183, 150)), (3, (30, 173, 276, 466))]
 
-        self.canvas = tk.Canvas(root)
+        self.canvas = tk.Canvas(root, width=640, height=480)  # Definir o tamanho do canvas principal como 640x480
         self.canvas.pack()
 
         self.play_button = ttk.Button(root, text="Play | Pause", command=self.toggle_play_pause)
@@ -52,7 +56,7 @@ class VideoApp:
         self.update_frame()
 
     def load_video(self):
-        if (self.warning_count == None):
+        if self.warning_count is None:
             tkinter.messagebox.showwarning("Telefone não informado", "Informe o telefone nas configuraçoes")
         else:
             video_path = filedialog.askopenfilename()
@@ -60,15 +64,6 @@ class VideoApp:
                 self.cap = cv2.VideoCapture(video_path)
                 self.fps = self.cap.get(cv2.CAP_PROP_FPS)
                 self.pixels = int((24 / self.fps) * 15)
-                ret, frame = self.cap.read()
-                if ret:
-                    frame_height, frame_width = frame.shape[:2]
-
-                    scale_factor = min(640 / frame_width, 480 / frame_height, 1)
-                    self.resized_width = int(frame_width * scale_factor)
-                    self.resized_height = int(frame_height * scale_factor)
-
-                    self.canvas.config(width=self.resized_width, height=self.resized_height)
 
     def toggle_play_pause(self):
         self.paused = not self.paused
@@ -103,8 +98,7 @@ class VideoApp:
         def on_mouse_up(event):
             x1, y1 = self.roi_coords
             x2, y2 = event.x, event.y
-            w, h = x2 - x1, y2 - y1
-            new_roi = (roi_num, (x1, y1, w, h))
+            new_roi = (roi_num, (x1, y1, x2, y2))
 
             # Substituir as coordenadas da ROI com o mesmo roi_num, se existir
             for i, (num, coords) in enumerate(self.rois):
@@ -156,6 +150,12 @@ class VideoApp:
         self.time_thresholdP_entry = ttk.Entry(settings_window, textvariable=self.time_thresholdP_var)
         self.time_thresholdP_entry.pack(side=tk.LEFT)
 
+        self.show_rois_checkbox = tk.Checkbutton(settings_window, text="Exibir Rois", variable=self.show_rois_var)
+        self.show_rois_checkbox.pack(side=tk.LEFT)
+
+        self.show_central_point_checkbox = tk.Checkbutton(settings_window, text="Exibir Ponto Central", variable=self.show_central_point_var)
+        self.show_central_point_checkbox.pack(side=tk.LEFT)
+
         self.apply_button = ttk.Button(settings_window, text="APLICAR", command=self.apply_settings)
         self.apply_button.pack(side=tk.LEFT)
 
@@ -186,11 +186,12 @@ class VideoApp:
         if self.cap and not self.paused:
             ret, frame = self.cap.read()
             frame = cv2.resize(frame, (640, 480))
-            process(frame, self.frameCount, self.fps, self.pixels, self.time_threshold, self.warning_count, self.time_thresholdP)
+            exibir_ponto = 4 if self.show_central_point_var.get() else 0
+            process(frame, self.frameCount, self.fps, self.pixels, self.time_threshold, self.warning_count, self.time_thresholdP, self.show_rois_var.get(), exibir_ponto, self.rois)
             self.frameCount = self.frameCount + 1
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame = cv2.resize(frame, (self.resized_width, self.resized_height))
+                # frame = cv2.resize(frame, (self.resized_width, self.resized_height))
                 frame = Image.fromarray(frame)
                 frame = ImageTk.PhotoImage(frame)
                 self.canvas.create_image(0, 0, anchor=tk.NW, image=frame)

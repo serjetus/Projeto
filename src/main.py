@@ -73,7 +73,7 @@ def extraction_process(fps, framecount):
             # personsT[len(personsT)-1].extract_caracteristcs() #a pessoa que saiu do rastreamento
 
 
-def process(frame, framecount, fps, pixels, tempo_carro, telefone, tempo_pessoa):
+def process(frame, framecount, fps, pixels, tempo_carro, telefone, tempo_pessoa, exibir_roi, exibir_pontos, rois):
     global carro, persons, personsT, centerParkX, centerParkY, centerparkGate_x, centerparkGate_y, stopedCars
     flag = False
     results = model(frame, verbose=False)
@@ -84,17 +84,27 @@ def process(frame, framecount, fps, pixels, tempo_carro, telefone, tempo_pessoa)
             x1, y1, x2, y2, class_id = map(int, (x1, y1, x2, y2, class_id))
             bcenterx = int((x1 + x2) / 2)
             bcentery = int((y1 + y2) / 2)
-            cv2.circle(frame, (bcenterx, bcentery), 5, (0, 255, 0), -1)
-            cv2.circle(frame, (centerParkX, centerParkY), 5, (0, 0, 255), -1)
-            cv2.rectangle(frame, (215, 89), (506, 380), (0, 0, 255), 0)
-            flag = math.hypot(centerParkX - (int(x1 + x2) / 2), centerParkY - (int(y1 + y2) / 2)) < 30
-            flag_gate = math.hypot(centerparkGate_x - (int(x1 + x2) / 2), centerparkGate_y - (int(y1 + y2) / 2)) < 30
+            cv2.circle(frame, (bcenterx, bcentery), exibir_pontos, (0, 255, 0), -1)
+            if exibir_roi:
+                for roi_num, (x1, y1, x2, y2) in rois:
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                    cv2.circle(frame, (int((x1 + x2) / 2), int((y1 + y2) / 2)), 3, (0, 0, 255), -1)
+                # cv2.rectangle(frame, (215, 89), (506, 380), (0, 0, 255), 1)
+                # cv2.circle(frame, (centerParkX, centerParkY), 3, (0, 0, 255), -1)
+
+            for roi_num, (x1, y1, x2, y2) in rois:
+                center_x = int((x1 + x2) / 2)
+                center_y = int((y1 + y2) / 2)
+                flag = math.hypot(center_x - (int(x1 + x2) / 2), center_y - (int(y1 + y2) / 2)) < 30
+
+            # flag = math.hypot(centerParkX - (int(x1 + x2) / 2), centerParkY - (int(y1 + y2) / 2)) < 30
+            # flag_gate = math.hypot(centerparkGate_x - (int(x1 + x2) / 2), centerparkGate_y - (int(y1 + y2) / 2)) < 30
 
             extraction_process(fps, framecount)
 
             '''            if class_id == 2 and carro is not None and not flag:
                 carro = None'''
-            if class_id == 2 and carro is None and flag or flag_gate:
+            if class_id == 2 and carro is None and flag:
                 carro = Car(frame[y1:y2, x1:x2], framecount, bcenterx, bcentery)
             else:
                 if carro is not None:
