@@ -142,8 +142,7 @@ class People:
         return ((frame_count - self.lastFrame) / fps) >= 5
 
     def extract_caracteristcs(self):
-        #cv2.imshow('pessoa', self.image)
-
+        # cv2.imshow('pessoa', self.image)
         result_hsv = color_detection_hsv(self.image)
         result_ycrcb = color_detection_ycrcb(self.image)
         result_rgb = color_detection_rgb(self.image)
@@ -161,6 +160,8 @@ class People:
         get_name = GetKeypoint()
         # cv2.imshow('blurred', self.skin_segmentation)
         for keypoint in results:
+            print("AAA")
+            print(keypoint.keypoints.data.tolist())
             results_keypoint = keypoint.keypoints.data.tolist()
             list_re = [
                 list(results_keypoint[0][get_name.LEFT_SHOULDER]),

@@ -85,17 +85,19 @@ def process(frame, framecount, fps, pixels, tempo_carro, telefone, tempo_pessoa,
             bcenterx = int((x1 + x2) / 2)
             bcentery = int((y1 + y2) / 2)
             cv2.circle(frame, (bcenterx, bcentery), exibir_pontos, (0, 255, 0), -1)
+            xr1, yr1, xr2, yr2 = 0, 0, 0, 0
             if exibir_roi:
-                for roi_num, (x1, y1, x2, y2) in rois:
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                    cv2.circle(frame, (int((x1 + x2) / 2), int((y1 + y2) / 2)), 3, (0, 0, 255), -1)
+                for roi_num, (xr1, yr1, xr2, yr2) in rois:
+                    cv2.rectangle(frame, (xr1, yr1), (xr2, yr2), (0, 0, 255), 2)
+                    cv2.circle(frame, (int((xr1 + xr2) / 2), int((yr1 + yr2) / 2)), 3, (0, 0, 255), -1)
                 # cv2.rectangle(frame, (215, 89), (506, 380), (0, 0, 255), 1)
                 # cv2.circle(frame, (centerParkX, centerParkY), 3, (0, 0, 255), -1)
 
-            for roi_num, (x1, y1, x2, y2) in rois:
-                center_x = int((x1 + x2) / 2)
-                center_y = int((y1 + y2) / 2)
-                flag = math.hypot(center_x - (int(x1 + x2) / 2), center_y - (int(y1 + y2) / 2)) < 30
+            for roi_num, (xr1, yr1, xr2, yr2) in rois:
+                center_x = int((xr1 + xr2) / 2)
+                center_y = int((yr1 + yr2) / 2)
+                if not flag:
+                    flag = math.hypot(center_x - (int(x1 + x2) / 2), center_y - (int(y1 + y2) / 2)) < 30
 
             # flag = math.hypot(centerParkX - (int(x1 + x2) / 2), centerParkY - (int(y1 + y2) / 2)) < 30
             # flag_gate = math.hypot(centerparkGate_x - (int(x1 + x2) / 2), centerparkGate_y - (int(y1 + y2) / 2)) < 30
