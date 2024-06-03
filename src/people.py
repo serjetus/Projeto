@@ -160,8 +160,6 @@ class People:
         get_name = GetKeypoint()
         # cv2.imshow('blurred', self.skin_segmentation)
         for keypoint in results:
-            print("AAA")
-            print(keypoint.keypoints.data.tolist())
             results_keypoint = keypoint.keypoints.data.tolist()
             list_re = [
                 list(results_keypoint[0][get_name.LEFT_SHOULDER]),
@@ -304,6 +302,9 @@ class People:
 
     def getstopedtime(self, fps, frame):
         return (frame - self.frame) / fps
+
+    def save_image(self):
+        cv2.imwrite("pessoa.jpg", self.image)
 
     def viewcenter(self):
         cv2.imshow('centro', self.centerpx)

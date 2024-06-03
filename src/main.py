@@ -18,19 +18,22 @@ centerparkGate_y = (10 + 10) / 2
 stopedCars = []
 
 
-def tracking(fps, pixels, frame, framecount, x1, x2, y1, y2, bcenterx, bcentery, pessoas):
+def tracking(fps, pixels, frame, framecount, x1, x2, y1, y2, bcenterx, bcentery, pessoas, tempo_pessoa, telefone):
     flag_2 = False
     for i in range(len(persons)):
         dist = persons[i].getdistance(bcenterx, bcentery, framecount, fps)
-        if not flag_2 and dist < pixels:
+        if not flag_2 and dist < pixels:  # mesma pessoa
             boxpeople = frame[y1:y2, x1:x2]
             persons[i].compare_bouding(boxpeople)
             persons[i].set_codinates(x1, x2, y1, y2)
             persons[i].set_lastframe(framecount)
             persons[i].reverse_track()
             flag_2 = True
+        if persons[i].getstopedtime() > tempo_pessoa:
+            whatsapp_thread = WhatsAppThread(telefone, "./src/pessoa.jpg", "Pessoa Parada em frente a casa", 2)
+            whatsapp_thread.start()
 
-    if not flag_2 and len(persons) < pessoas:
+    if not flag_2 and len(persons) < pessoas:  # nova pessoa
         boundingboxpeople = frame[y1:y2, x1:x2]
         person1 = People(boundingboxpeople, x1, x2, y1, y2, framecount)
         persons.append(person1)
@@ -122,6 +125,5 @@ def process(frame, framecount, fps, pixels, tempo_carro, telefone, tempo_pessoa,
                     boundingboxpeople = frame[y1:y2, x1:x2]
                     person = People(boundingboxpeople, x1, x2, y1, y2, framecount)
                     persons.append(person)
-                    print(persons)
                 else:
-                    tracking(fps, pixels, frame, framecount, x1, x2, y1, y2, bcenterx, bcentery, pessoas)
+                    tracking(fps, pixels, frame, framecount, x1, x2, y1, y2, bcenterx, bcentery, pessoas, tempo_pessoa, telefone)
