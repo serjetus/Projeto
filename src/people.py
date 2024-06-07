@@ -79,12 +79,43 @@ def replace_non_white_pixels_with_black(image):
     return result
 
 
+def get_dominant_color_lab(image, k=1):
+    image_lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+    image_lab = image_lab.reshape((image_lab.shape[0] * image_lab.shape[1], 3))
+
+    # Aplica o K-means clustering
+    kmeans = KMeans(n_clusters=k)
+    kmeans.fit(image_lab)
+    colors_lab = kmeans.cluster_centers_
+    # Converte a cor dominante de volta para o espaço RGB
+    dominant_color_lab = colors_lab[0].astype(int)
+    return dominant_color_lab
+
+
 def most_frequent_color(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    hist_hue = cv2.calcHist([hsv_image], [0], None, [256], [0, 256])
+
+    # Calcula os histogramas para os canais HSV
+    hist_hue = cv2.calcHist([hsv_image], [0], None, [180], [0, 180])
+    hist_sat = cv2.calcHist([hsv_image], [1], None, [256], [0, 256])
+    hist_val = cv2.calcHist([hsv_image], [2], None, [256], [0, 256])
+
+    # Encontra o valor mais frequente para cada canal
+    dominant_hue = np.argmax(hist_hue)
+    dominant_sat = np.argmax(hist_sat)
+    dominant_val = np.argmax(hist_val)
+
+    # Combina os valores para obter a cor dominante em HSV
+    dominant_color_hsv = [dominant_hue, dominant_sat, dominant_val]
+
+    return dominant_color_hsv
+
+
+'''def most_frequent_color(image):
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hist_hue = cv2.calcHist([hsv_image], [0], None, [180], [0, 180])
     max_freq_index = np.argmax(hist_hue)
-    most_common_hue = max_freq_index / 2
-    return most_common_hue
+    return max_freq_index'''
 
 
 class People:
@@ -150,10 +181,12 @@ class People:
         final_result = replace_non_black_pixels_with_white(final_result)
         kernel = np.ones((3, 3), np.uint8)
         blurred = cv2.erode(final_result, kernel, 1)
+        cv2.imwrite("HSV.jpg", blurred)
         blurred = cv2.dilate(blurred, kernel, 1)
         blurred = cv2.dilate(blurred, kernel, 1)
         blurred = cv2.dilate(blurred, kernel, 1)
         self.skin_segmentation = blurred
+        # cv2.imwrite("segmentada.jpg", self.skin_segmentation)
         # final_result = cv2.bitwise_and(result_hsv, cv2.bitwise_and(result_ycrcb, result_rgb))
         # cv2.imshow('com RGB ____________________', final_result)
         results = modelpose(source=self.image, )
@@ -177,33 +210,40 @@ class People:
             ]
             if list_re[0][2] and list_re[5][2] > 0.6:
                 self.set_height(list_re[1][1] - list_re[5][1])
+            '''            for x, y, conf in list_re:
+                cv2.circle(self.skin_segmentation, (int(x), int(y)), 1, (0, 255, 0), -1)
+                cv2.circle(self.image, (int(x), int(y)), 1, (0, 255, 0), -1)
+            cv2.imwrite("Seg_pontos.png", self.skin_segmentation)
+            cv2.imwrite("pontos.png", self.image)'''
 
-            flag = False
-            if not flag:
-                if self.compare_circles(list_re[0][0], list_re[0][1]):  #ombro E branco?
-                    self.caracterics.append("REGATA")
+            OE = self.compare_circles(list_re[0][0], list_re[0][1])
+            OD = self.compare_circles(list_re[1][0], list_re[1][1])
+            CE = self.compare_circles(list_re[2][0], list_re[2][1])
+            CD = self.compare_circles(list_re[3][0], list_re[3][1])
+            print(OE, OD, CE, CD)
+            if OE and OD:
+                self.caracterics.append("REGATA")
+            elif not (OE or OD):  # Nenhum ombro é branco
+                if CE and CD:
+                    self.caracterics.append("CAMISA")
+                elif not (CE or CD):  # Nenhum cotovelo é branco
+                    self.caracterics.append("MANGA LONGA")
                 else:
-                    if self.compare_circles(list_re[2][0], list_re[2][1]):
+                    dominant_point = list_re[2] if list_re[2][2] >= list_re[3][2] else list_re[3]
+                    if self.compare_circles(dominant_point[0], dominant_point[1]):
                         self.caracterics.append("CAMISA")
-                    else:
-                        self.caracterics.append("MANGA LONGA")
-                    flag = True
-
-            if not flag:
-                if self.compare_circles(list_re[1][0], list_re[1][1]):  #ombro D branco?
+            else:
+                dominant_point = list_re[0] if list_re[0][2] >= list_re[1][2] else list_re[1]
+                if self.compare_circles(dominant_point[0], dominant_point[1]):
                     self.caracterics.append("REGATA")
-                else:
-                    if self.compare_circles(list_re[3][0], list_re[3][1]):
-                        self.caracterics.append("CAMISA")
-                    else:
-                        self.caracterics.append("MANGA LONGA")
 
+            JE = self.compare_circles(list_re[7][0], list_re[7][1])
+            JD = self.compare_circles(list_re[6][0], list_re[6][1])
             flag = False
             if not flag:
                 if self.compare_circles(list_re[7][0], list_re[7][1] + 5):
                     self.caracterics.append('SHORTS')
                 else:
-                    #print("DISTANCE:", find_distance_to_white(self.skin_segmentation, list_re[7][0], list_re[7][1], 0))
                     self.caracterics.append('CALÇA')
                 flag = True
 
@@ -211,20 +251,21 @@ class People:
                 if self.compare_circles(list_re[6][0], list_re[6][1] + 5):
                     self.caracterics.append('SHORTS')
                 else:
-                    #print("DISTANCE:", find_distance_to_white(self.skin_segmentation, list_re[6][0], list_re[6][1], 0))
                     self.caracterics.append('CALÇA')
 
-            if list_re[1][2] > list_re[0][2]:
-                shirt_image = self.image[int(list_re[1][1]):int(list_re[10][1]), int(list_re[1][0]):, :]
+            if list_re[1][2] > list_re[0][2]:  # qual ombro esta mais visivel
+                shirt_image = self.image[int(list_re[1][1]):int(list_re[10][1]), int(list_re[1][0]):int(list_re[10][0]),:]
+                # x1, y1 = int(list_re[1][0]), int(list_re[1][1])
+                # x2, y2 = int(list_re[10][0]), int(list_re[10][1])
+                # cv2.rectangle(self.image, (x1, y1), (x2, y2), (0, 255, 0), 1)
             else:
-                shirt_image = self.image[int(list_re[0][1]):int(list_re[11][1]), int(list_re[0][0]):, :]
+                shirt_image = self.image[int(list_re[0][1]):int(list_re[11][1]), int(list_re[0][0]):int(list_re[11][0]), :]
+                # x1, y1 = int(list_re[0][0]), int(list_re[0][1])
+                # x2, y2 = int(list_re[11][0]), int(list_re[11][1])
+                # cv2.rectangle(self.image, (x1, y1), (x2, y2), (0, 255, 0), 1)
+            '''            cv2.imwrite("camisa.jpg", self.image)
+            cv2.imwrite("C_cortada.jpg", shirt_image)'''
 
-            altura, largura, _ = shirt_image.shape
-            x1 = largura // 2 - 4
-            y1 = altura // 2 - 4
-            x2 = largura // 2 + 4
-            y2 = altura // 2 + 4
-            shirt_image = shirt_image[y1:y2, x1:x2]
             color = most_frequent_color(shirt_image)
             self.clothes_color.append(color)
             if list_re[10][2] > list_re[11][2]:

@@ -29,9 +29,10 @@ def tracking(fps, pixels, frame, framecount, x1, x2, y1, y2, bcenterx, bcentery,
             persons[i].set_lastframe(framecount)
             persons[i].reverse_track()
             flag_2 = True
-        if persons[i].getstopedtime() > tempo_pessoa:
+
+    '''        if persons[i].getstopedtime() > tempo_pessoa:
             whatsapp_thread = WhatsAppThread(telefone, "./src/pessoa.jpg", "Pessoa Parada em frente a casa", 2)
-            whatsapp_thread.start()
+            whatsapp_thread.start()'''
 
     if not flag_2 and len(persons) < pessoas:  # nova pessoa
         boundingboxpeople = frame[y1:y2, x1:x2]
