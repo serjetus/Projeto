@@ -187,7 +187,7 @@ class VideoApp:
             ret, frame = self.cap.read()
             frame = cv2.resize(frame, (640, 480))
             exibir_ponto = 4 if self.show_central_point_var.get() else 0
-            process(frame, self.frameCount, self.fps, self.pixels, self.time_threshold, self.warning_count, self.time_thresholdP, self.show_rois_var.get(), exibir_ponto, self.rois)
+            process(frame, self.frameCount, self.fps, self.pixels, self.time_threshold, self.warning_count, self.time_thresholdP, self.show_rois_var.get(), exibir_ponto, self.rois, self.detection_threshold)
             self.frameCount = self.frameCount + 1
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

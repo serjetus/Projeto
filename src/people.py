@@ -111,13 +111,6 @@ def most_frequent_color(image):
     return dominant_color_hsv
 
 
-'''def most_frequent_color(image):
-    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    hist_hue = cv2.calcHist([hsv_image], [0], None, [180], [0, 180])
-    max_freq_index = np.argmax(hist_hue)
-    return max_freq_index'''
-
-
 class People:
     tracking = False
 
@@ -134,6 +127,13 @@ class People:
         self.clothes_color = []
         self.detections = 1
         self.detections_time = []
+        self.alerted = False
+
+    def get_alerted(self):
+        return self.alerted
+
+    def set_alerted(self, value):
+        self.alerted = value
 
     def getdist_xmove(self):
         return self.x2 - self.x1
@@ -277,8 +277,7 @@ class People:
                 # cv2.imshow('legs', legs_image)
                 cv2.waitKey(0)
             color = most_frequent_color(legs_image)
-            self.clothes_color.append(color)
-            print(self.clothes_color)
+            # self.clothes_color.append(color)
             # cv2.waitKey(0)
 
     def compare_circles(self, x, y):
@@ -342,7 +341,7 @@ class People:
         return distance / sec if sec > 0 else distance
 
     def getstopedtime(self, fps, frame):
-        return (frame - self.frame) / fps
+        return (frame - self.lastFrame) / fps
 
     def save_image(self):
         cv2.imwrite("pessoa.jpg", self.image)

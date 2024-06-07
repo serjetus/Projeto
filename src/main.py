@@ -30,9 +30,11 @@ def tracking(fps, pixels, frame, framecount, x1, x2, y1, y2, bcenterx, bcentery,
             persons[i].reverse_track()
             flag_2 = True
 
-    '''        if persons[i].getstopedtime() > tempo_pessoa:
+    for i in range(len(persons)):
+        if persons[i].getstopedtime(fps, framecount) > tempo_pessoa and not persons[i].get_alerted:
+            persons[i].set_alerted(True)
             whatsapp_thread = WhatsAppThread(telefone, "./src/pessoa.jpg", "Pessoa Parada em frente a casa", 2)
-            whatsapp_thread.start()'''
+            whatsapp_thread.start()
 
     if not flag_2 and len(persons) < pessoas:  # nova pessoa
         boundingboxpeople = frame[y1:y2, x1:x2]
@@ -49,7 +51,7 @@ def tracking(fps, pixels, frame, framecount, x1, x2, y1, y2, bcenterx, bcentery,
 # telefone, roi1, roi2, roi3, limite, tempo
 
 
-def extraction_process(fps, framecount):
+def extraction_process(fps, framecount, detects, telefone):
     global persons, personsT
     match_flag = False
     for rmv in range(len(persons)):
@@ -64,10 +66,24 @@ def extraction_process(fps, framecount):
                 print("COMPARANDO")
                 print("", removed_person.caracterics, "= ", personC.caracterics)
                 print("", removed_person.clothes_color, "= ", personC.clothes_color)
-                match_flag = personC.caracterics == removed_person.caracterics and personC.clothes_color == removed_person.clothes_color
+                color_tolerance = 0.05
+                match_flag = personC.caracterics == removed_person.caracterics
+                if match_flag:
+                    for colorC, color_removed in zip(personC.clothes_color, removed_person.clothes_color):
+                        for i in range(2):
+                            color_diff = abs(colorC[i] - color_removed[i])
+                            max_color_value = max(colorC[i], color_removed[i])
+                            if color_diff > max_color_value * color_tolerance:
+                                match_flag = False
+                                break
+                        if not match_flag:
+                            break
                 if match_flag:
                     print("REDETECÇÂO")
                     personC.set_detections(personC.get_detections() + 1)
+                    if personC.get_detections() >= detects:
+                        whatsapp_thread = WhatsAppThread(telefone, "./src/pessoa.jpg", "Pessoa transitando excessivamente",2)
+                        whatsapp_thread.start()
                     removed_person = None
                     break
             if not match_flag:
@@ -77,7 +93,7 @@ def extraction_process(fps, framecount):
             # personsT[len(personsT)-1].extract_caracteristcs() #a pessoa que saiu do rastreamento
 
 
-def process(frame, framecount, fps, pixels, tempo_carro, telefone, tempo_pessoa, exibir_roi, exibir_pontos, rois):
+def process(frame, framecount, fps, pixels, tempo_carro, telefone, tempo_pessoa, exibir_roi, exibir_pontos, rois, detects):
     global carro, persons, personsT, centerParkX, centerParkY, centerparkGate_x, centerparkGate_y, stopedCars
     flag = False
     results = model(frame, verbose=False)
@@ -106,7 +122,7 @@ def process(frame, framecount, fps, pixels, tempo_carro, telefone, tempo_pessoa,
             # flag = math.hypot(centerParkX - (int(x1 + x2) / 2), centerParkY - (int(y1 + y2) / 2)) < 30
             # flag_gate = math.hypot(centerparkGate_x - (int(x1 + x2) / 2), centerparkGate_y - (int(y1 + y2) / 2)) < 30
 
-            extraction_process(fps, framecount)
+            extraction_process(fps, framecount, detects, telefone)
 
             '''            if class_id == 2 and carro is not None and not flag:
                 carro = None'''

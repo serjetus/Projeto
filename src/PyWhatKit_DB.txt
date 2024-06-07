@@ -53,3 +53,8 @@ Time: 15:41
 Phone Number: +5518996213836
 Message: Carro estacionado
 --------------------
+Date: 7/6/2024
+Time: 19:43
+Phone Number: +5518996213836
+Message: Pessoa transitando excessivamente
+--------------------
