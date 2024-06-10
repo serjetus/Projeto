@@ -8,21 +8,6 @@ from ultralytics import YOLO
 modelpose = YOLO('yolov8n-pose.pt')
 
 
-def color_detection_rgb(image):
-    condition1 = ((image[:, :, 0] > 95) & (image[:, :, 1] > 40) & (image[:, :, 2] > 20) &
-                  (np.max(image, axis=-1) - np.min(image, axis=-1) > 15) &
-                  (np.abs(image[:, :, 0] - image[:, :, 1]) > 15) &
-                  (image[:, :, 0] > image[:, :, 1]) & (image[:, :, 0] > image[:, :, 2]))
-
-    condition2 = ((image[:, :, 0] > 220) & (image[:, :, 1] > 210) & (image[:, :, 2] > 170) &
-                  (np.abs(image[:, :, 0] - image[:, :, 1]) <= 15) &
-                  (image[:, :, 0] > image[:, :, 2]) & (image[:, :, 1] > image[:, :, 2]))
-
-    mask = condition1 | condition2
-    result = cv2.bitwise_and(image, image, mask=mask.astype(np.uint8))
-    return result
-
-
 def color_detection_ycrcb(image):
     ycrcb_image = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
     mask = (
@@ -50,46 +35,11 @@ def replace_non_black_pixels_with_white(image):
     return result
 
 
-def find_distance_to_white(image, x, y, distance=0):
-    x = int(x)
-    y = int(y)
-    if x < 0 or y < 0 or x >= image.shape[1] or y >= image.shape[0]:
-        return distance
-
-    if image[y, x] == [255, 255, 255]:
-        return distance
-
-    if image[y, x] == [0, 0, 0]:
-        image[y, x] = [125, 128, 128]
-
-        distances = [find_distance_to_white(image, x + 1, y, distance + 1),
-                     find_distance_to_white(image, x - 1, y, distance + 1),
-                     find_distance_to_white(image, x, y + 1, distance + 1),
-                     find_distance_to_white(image, x, y - 1, distance + 1)]
-
-        return min(distances)
-
-    return float('inf')
-
-
 def replace_non_white_pixels_with_black(image):
     non_white_mask = cv2.inRange(image, (0, 0, 0), (254, 254, 254))
     result = image.copy()
     result[non_white_mask > 0] = [0, 0, 0]
     return result
-
-
-def get_dominant_color_lab(image, k=1):
-    image_lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-    image_lab = image_lab.reshape((image_lab.shape[0] * image_lab.shape[1], 3))
-
-    # Aplica o K-means clustering
-    kmeans = KMeans(n_clusters=k)
-    kmeans.fit(image_lab)
-    colors_lab = kmeans.cluster_centers_
-    # Converte a cor dominante de volta para o espaço RGB
-    dominant_color_lab = colors_lab[0].astype(int)
-    return dominant_color_lab
 
 
 def most_frequent_color(image):
@@ -105,7 +55,6 @@ def most_frequent_color(image):
     dominant_sat = np.argmax(hist_sat)
     dominant_val = np.argmax(hist_val)
 
-    # Combina os valores para obter a cor dominante em HSV
     dominant_color_hsv = [dominant_hue, dominant_sat, dominant_val]
 
     return dominant_color_hsv
@@ -173,10 +122,8 @@ class People:
         return ((frame_count - self.lastFrame) / fps) >= 5
 
     def extract_caracteristcs(self):
-        # cv2.imshow('pessoa', self.image)
         result_hsv = color_detection_hsv(self.image)
         result_ycrcb = color_detection_ycrcb(self.image)
-        result_rgb = color_detection_rgb(self.image)
         final_result = cv2.bitwise_and(result_hsv, result_ycrcb)
         final_result = replace_non_black_pixels_with_white(final_result)
         kernel = np.ones((3, 3), np.uint8)
@@ -187,11 +134,9 @@ class People:
         blurred = cv2.dilate(blurred, kernel, 1)
         self.skin_segmentation = blurred
         # cv2.imwrite("segmentada.jpg", self.skin_segmentation)
-        # final_result = cv2.bitwise_and(result_hsv, cv2.bitwise_and(result_ycrcb, result_rgb))
-        # cv2.imshow('com RGB ____________________', final_result)
+
         results = modelpose(source=self.image, )
         get_name = GetKeypoint()
-        # cv2.imshow('blurred', self.skin_segmentation)
         for keypoint in results:
             results_keypoint = keypoint.keypoints.data.tolist()
             list_re = [
@@ -220,7 +165,7 @@ class People:
             OD = self.compare_circles(list_re[1][0], list_re[1][1])
             CE = self.compare_circles(list_re[2][0], list_re[2][1])
             CD = self.compare_circles(list_re[3][0], list_re[3][1])
-            print(OE, OD, CE, CD)
+
             if OE and OD:
                 self.caracterics.append("REGATA")
             elif not (OE or OD):  # Nenhum ombro é branco
@@ -237,9 +182,27 @@ class People:
                 if self.compare_circles(dominant_point[0], dominant_point[1]):
                     self.caracterics.append("REGATA")
 
-            JE = self.compare_circles(list_re[7][0], list_re[7][1])
-            JD = self.compare_circles(list_re[6][0], list_re[6][1])
-            flag = False
+            JE = self.compare_circles(list_re[6][0], list_re[6][1])
+            JD = self.compare_circles(list_re[7][0], list_re[7][1])
+            TE = self.compare_circles(list_re[8][0], list_re[8][1])
+            TD = self.compare_circles(list_re[9][0], list_re[9][1])
+
+            if JE and JD or TE and TD:
+                self.caracterics.append('SHORTS')
+            else:
+                if not (JE or JD and TE or TD):
+                    self.caracterics.append("CALÇA")
+                else:
+                    if TE or TD:
+                        dominant_point = list_re[8] if list_re[8][2] >= list_re[9][2] else list_re[9]
+                        if self.compare_circles(dominant_point[0], dominant_point[1]):
+                            self.caracterics.append("SHORTS")
+                    elif JE or JD:
+                        dominant_point = list_re[6] if list_re[6][2] >= list_re[7][2] else list_re[7]
+                        if self.compare_circles(dominant_point[0], dominant_point[1]):
+                            self.caracterics.append("SHORTS")
+
+            '''            flag = False
             if not flag:
                 if self.compare_circles(list_re[7][0], list_re[7][1] + 5):
                     self.caracterics.append('SHORTS')
@@ -251,33 +214,26 @@ class People:
                 if self.compare_circles(list_re[6][0], list_re[6][1] + 5):
                     self.caracterics.append('SHORTS')
                 else:
-                    self.caracterics.append('CALÇA')
+                    self.caracterics.append('CALÇA')'''
 
             if list_re[1][2] > list_re[0][2]:  # qual ombro esta mais visivel
-                shirt_image = self.image[int(list_re[1][1]):int(list_re[10][1]), int(list_re[1][0]):int(list_re[10][0]),:]
-                # x1, y1 = int(list_re[1][0]), int(list_re[1][1])
-                # x2, y2 = int(list_re[10][0]), int(list_re[10][1])
-                # cv2.rectangle(self.image, (x1, y1), (x2, y2), (0, 255, 0), 1)
+                shirt_image = self.image[int(list_re[1][1]):int(list_re[10][1]), int(list_re[1][0]):int(list_re[10][0]), :]
             else:
                 shirt_image = self.image[int(list_re[0][1]):int(list_re[11][1]), int(list_re[0][0]):int(list_re[11][0]), :]
-                # x1, y1 = int(list_re[0][0]), int(list_re[0][1])
-                # x2, y2 = int(list_re[11][0]), int(list_re[11][1])
-                # cv2.rectangle(self.image, (x1, y1), (x2, y2), (0, 255, 0), 1)
             '''            cv2.imwrite("camisa.jpg", self.image)
             cv2.imwrite("C_cortada.jpg", shirt_image)'''
 
             color = most_frequent_color(shirt_image)
             self.clothes_color.append(color)
             if list_re[10][2] > list_re[11][2]:
-                legs_image = self.image[int(list_re[10][1]):int(list_re[10][1]) + 7,
-                             int(list_re[10][0]):int(list_re[10][0]) + 7, :]
+                legs_image = self.image[int(list_re[6][1]):int(list_re[6][1]) + 7, int(list_re[6][0]):int(list_re[6][0]) + 7, :]
             else:
-                legs_image = self.image[int(list_re[11][1]):int(list_re[11][1]) + 7,
-                             int(list_re[11][0]):int(list_re[11][0]) + 7, :]
-                # cv2.imshow('legs', legs_image)
-                cv2.waitKey(0)
+                legs_image = self.image[int(list_re[7][1]):int(list_re[7][1]) + 7, int(list_re[7][0]):int(list_re[7][0]) + 7, :]
+
+            cv2.imwrite("camisa.jpg", self.image)
             color = most_frequent_color(legs_image)
-            # self.clothes_color.append(color)
+            self.clothes_color.append(color)
+
             # cv2.waitKey(0)
 
     def compare_circles(self, x, y):

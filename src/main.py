@@ -41,12 +41,12 @@ def tracking(fps, pixels, frame, framecount, x1, x2, y1, y2, bcenterx, bcentery,
         person1 = People(boundingboxpeople, x1, x2, y1, y2, framecount)
         persons.append(person1)
 
-        '''        for cod in range(len(persons)):
+        '''    for cod in range(len(persons)):
         if persons[cod].get_tracking():
             org = (persons[cod].get_cx(), persons[cod].get_cy() - 7)
             persons[cod].reverse_track()
-            cv2.circle(frame, (bcenterx, bcentery), 5, (0, 255, 0), -1)
-            cv2.putText(frame, str(cod), org, 0, 1, (0, 0, 255), 2)'''
+            cv2.circle(frame, (bcenterx, bcentery), 2, (0, 255, 0), -1)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)'''
 
 # telefone, roi1, roi2, roi3, limite, tempo
 
@@ -69,13 +69,13 @@ def extraction_process(fps, framecount, detects, telefone):
                 color_tolerance = 0.05
                 match_flag = personC.caracterics == removed_person.caracterics
                 if match_flag:
-                    for colorC, color_removed in zip(personC.clothes_color, removed_person.clothes_color):
-                        for i in range(2):
-                            color_diff = abs(colorC[i] - color_removed[i])
-                            max_color_value = max(colorC[i], color_removed[i])
-                            if color_diff > max_color_value * color_tolerance:
-                                match_flag = False
-                                break
+                    colorC, color_removed = (personC.clothes_color[0], removed_person.clothes_color[0])
+                    for i in range(2):
+                        color_diff = abs(colorC[i] - color_removed[i])
+                        max_color_value = max(colorC[i], color_removed[i])
+                        if color_diff > max_color_value * color_tolerance:
+                            match_flag = False
+                            break
                         if not match_flag:
                             break
                 if match_flag:
