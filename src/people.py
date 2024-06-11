@@ -128,12 +128,11 @@ class People:
         final_result = replace_non_black_pixels_with_white(final_result)
         kernel = np.ones((3, 3), np.uint8)
         blurred = cv2.erode(final_result, kernel, 1)
-        cv2.imwrite("HSV.jpg", blurred)
         blurred = cv2.dilate(blurred, kernel, 1)
         blurred = cv2.dilate(blurred, kernel, 1)
         blurred = cv2.dilate(blurred, kernel, 1)
         self.skin_segmentation = blurred
-        # cv2.imwrite("segmentada.jpg", self.skin_segmentation)
+
 
         results = modelpose(source=self.image, )
         get_name = GetKeypoint()
@@ -230,7 +229,7 @@ class People:
             else:
                 legs_image = self.image[int(list_re[7][1]):int(list_re[7][1]) + 7, int(list_re[7][0]):int(list_re[7][0]) + 7, :]
 
-            cv2.imwrite("camisa.jpg", self.image)
+            #cv2.imwrite("camisa.jpg", self.image)
             color = most_frequent_color(legs_image)
             self.clothes_color.append(color)
 

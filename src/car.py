@@ -25,11 +25,9 @@ class Car:
     def get_alerted(self):
         return self.alerted
 
-    def viewimage(self, centerx, centery):
+    def viewimage(self):
         cv2.imwrite("carro.jpg", self.image)
-        #cv2.imshow('Carro Estacionado em frente a garagem', self.image)
         self.alerted = True
-        #cv2.waitKey(0)
 
     def getStopedTime(self, fps, frame):
         return (frame-self.frame)/fps

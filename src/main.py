@@ -4,7 +4,7 @@ import cv2
 from ultralytics import YOLO
 from people import People
 from car import Car
-from thread import WhatsAppThread
+from thread_2 import MessageThread
 
 
 carro = None
@@ -33,8 +33,9 @@ def tracking(fps, pixels, frame, framecount, x1, x2, y1, y2, bcenterx, bcentery,
     for i in range(len(persons)):
         if persons[i].getstopedtime(fps, framecount) > tempo_pessoa and not persons[i].get_alerted:
             persons[i].set_alerted(True)
-            whatsapp_thread = WhatsAppThread(telefone, "./src/pessoa.jpg", "Pessoa Parada em frente a casa", 2)
-            whatsapp_thread.start()
+            persons[i].save_image()
+            message_thread = MessageThread(telefone, "pessoa.jpg", "Pessoa Parada em frente a casa", 2)
+            message_thread.start()
 
     if not flag_2 and len(persons) < pessoas:  # nova pessoa
         boundingboxpeople = frame[y1:y2, x1:x2]
@@ -82,8 +83,9 @@ def extraction_process(fps, framecount, detects, telefone):
                     print("REDETECÇÂO")
                     personC.set_detections(personC.get_detections() + 1)
                     if personC.get_detections() >= detects:
-                        whatsapp_thread = WhatsAppThread(telefone, "./src/pessoa.jpg", "Pessoa transitando excessivamente",2)
-                        whatsapp_thread.start()
+                        personC.save_image()
+                        message_thread = MessageThread(telefone, "pessoa.jpg", "Pessoa transitando excessivamente", 2)
+                        message_thread.start()
                     removed_person = None
                     break
             if not match_flag:
@@ -119,9 +121,6 @@ def process(frame, framecount, fps, pixels, tempo_carro, telefone, tempo_pessoa,
                 if not flag:
                     flag = math.hypot(center_x - (int(x1 + x2) / 2), center_y - (int(y1 + y2) / 2)) < 30
 
-            # flag = math.hypot(centerParkX - (int(x1 + x2) / 2), centerParkY - (int(y1 + y2) / 2)) < 30
-            # flag_gate = math.hypot(centerparkGate_x - (int(x1 + x2) / 2), centerparkGate_y - (int(y1 + y2) / 2)) < 30
-
             extraction_process(fps, framecount, detects, telefone)
 
             '''            if class_id == 2 and carro is not None and not flag:
@@ -133,9 +132,9 @@ def process(frame, framecount, fps, pixels, tempo_carro, telefone, tempo_pessoa,
                     if carro.getStopedTime(fps, framecount) >= tempo_carro and not carro.get_alerted():
                         if carro.get_alerted():
                             stopedCars.append(carro)
-                        carro.viewimage(bcenterx, bcentery)
-                        whatsapp_thread = WhatsAppThread(telefone, "./src/carro.jpg", "Carro estacionado", 2)
-                        whatsapp_thread.start()
+                        carro.viewimage()
+                        message_thread = MessageThread(telefone, "carro.jpg", "Carro estacionado em frente a garagem", 1)
+                        message_thread.start()
 
             if class_id == 0:
                 if framecount < 1:
